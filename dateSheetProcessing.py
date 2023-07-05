@@ -1,234 +1,94 @@
 import re
-from PyPDF2 import PdfReader
+import pandas as pd
+import pdfplumber
+import numpy as np
 
-sourceFile = "C:/Users/coolm/Downloads/datesheet.pdf"
-months = [
-    "jan",
-    "feb",
-    "mar",
-    "apr",
-    "may",
-    "jun",
-    "jul",
-    "aug",
-    "sep",
-    "oct",
-    "nov",
-    "dec",
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-]
-days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+path = "C:/Users/coolm/Downloads/datesheet.pdf"
+df = pd.DataFrame(columns=["TIME", "DATE", "UPC"])  # data frame to store time,upc,date
 
 
-def getText(sourceFile):
-    reader = PdfReader(sourceFile)
-    print("Num Pages:", len(reader.pages))
-
-    fullText = ""
-
-    for i in range(len(reader.pages)):
-        # print("Page:", i)
-        page = reader.pages[i]
-        fullText += page.extract_text()
-    return fullText
-
-
-def get_core_subjects(fullText):
-    # get core subjects starting with CORE SUBJECT and ending with a dot(.)
-    core_subjects = re.search(r"CORE  SUBJECT  :- (.*?)\s*\.", fullText, re.DOTALL)
-
-    core_subjects = core_subjects.group(1).strip().split(",") if core_subjects else []
-
-    for i in range(len(core_subjects)):
-        core_subjects[i] = core_subjects[i].strip()
-    return core_subjects
-
-
-def get_dates(fullText):
-    dates = []
-    lines = fullText.split("\n")
-    for line in lines:
-        for month in months:
-            for day in days:
-                if (
-                    (month in line)
-                    and (day.lower() in line.lower())
-                    and ("printed" not in line.lower())  # extra data
-                ):
-                    dates.append(line.strip().lower())
-
-    return dates
-
-
-# def get_subjects(fullText, dates):
-#     table = {}
-#     lines = fullText.split("\n")
-
-#     for date in dates:
-#         table[date] = []
-
-#     try:
-#         for dateIdx, date in enumerate(dates):
-#             for lineIdx, line in enumerate(lines):
-#                 if date.lower() in line.lower():
-#                     curLineIdx = lineIdx + 1  # Start from the next line after the date
-
-#                     # Extract subject information until an empty line is encountered
-#                     while curLineIdx < len(lines) and lines[curLineIdx].strip() != "":
-#                         subject_info = lines[curLineIdx].strip().split()
-#                         if len(subject_info) >= 4:
-#                             if (
-#                                 (
-#                                     subject_info[0].lower() == "biomedical"
-#                                     and subject_info[1].lower() == "science"
-#                                 )
-#                                 or (
-#                                     subject_info[0].lower() == "computer"
-#                                     and subject_info[1].lower() == "science"
-#                                 )
-#                                 or (
-#                                     subject_info[0].lower() == "electronics"
-#                                     and subject_info[1].lower() == "science"
-#                                 )
-#                                 or (
-#                                     subject_info[0].lower() == "food"
-#                                     and subject_info[1].lower() == "technology"
-#                                 )
-#                                 or (
-#                                     subject_info[0].lower() == "home"
-#                                     and subject_info[1].lower() == "science"
-#                                 )
-#                                 or (
-#                                     subject_info[0].lower() == "environmental"
-#                                     and subject_info[1].lower() == "science"
-#                                 )
-#                                 or (
-#                                     subject_info[0].lower() == "polymer"
-#                                     and subject_info[1].lower() == "science"
-#                                 )
-#                             ):
-#                                 subject = {
-#                                     "subject": subject_info[0] + " " + subject_info[1],
-#                                     "semester": subject_info[2],
-#                                     "paper_code": subject_info[3],
-#                                     "paper_name": " ".join(subject_info[4:]),
-#                                 }
-#                             else:
-#                                 subject = {
-#                                     "subject": subject_info[0],
-#                                     "semester": subject_info[1],
-#                                     "paper_code": subject_info[2],
-#                                     "paper_name": " ".join(subject_info[3:]),
-#                                 }
-#                             print("Date\n", date)
-#                             print("Subject\n", subject)
-#                             table[date].append(subject)
-#                         curLineIdx += 1
-
-#     except IndexError:
-#         pass
-
-#     return table
+def processss_file(path):
+    months = [
+        "jan",
+        "feb",
+        "mar",
+        "apr",
+        "may",
+        "jun",
+        "jul",
+        "aug",
+        "sep",
+        "oct",
+        "nov",
+        "dec",
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+    ]
+    days = [
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+    ]
+    pdf = pdfplumber.open(path)
+    pages = pdf.pages
+    print("total pages", len(pages))
+    for page in pages:
+        text = page.extract_text()
+        search_line2 = re.compile(r"_______")
+        counter = False
+        for line in text.split("\n"):
+            if re.match("TIME OF COMMENCEMENT", line):
+                c = line.split()
+                d = " ".join(c[4:])
+            if (
+                any(day in line.lower() for day in days)
+                and any(month in line.lower() for month in months)
+                and ("printed" not in line.lower())
+            ):
+                a = line.split("(")
+                counter = True
+                y = a[0]
+            elif search_line2.match(line):
+                counter = False
+            elif counter:
+                line_split = list(line.split())
+                for c in line_split:
+                    if re.match(r"\d{7}", c):
+                        row = [d, y, c]
+                        df.loc[len(df)] = row
+    return df
 
 
-def get_subjects(fullText, dates):
-    table = {}
-
-    for date in dates:
-        table[date] = []
-
-    lines = fullText.split("\n")
-
-    try:
-        current_date = None  # Variable to track the current date
-
-        for lineIdx, line in enumerate(lines):
-            # Check if the line contains any of the dates
-            if any(date.lower() in line.lower() for date in dates):
-                for date in dates:
-                    if date.lower() in line.lower():
-                        current_date = date  # Set the current date
-                        break
-
-            # Extract subject information if the line contains relevant data
-            if current_date is not None and line.strip() != "":
-                subject_info = line.strip().split()
-
-                if len(subject_info) >= 4:
-                    if (
-                        (
-                            subject_info[0].lower() == "biomedical"
-                            and subject_info[1].lower() == "science"
-                        )
-                        or (
-                            subject_info[0].lower() == "computer"
-                            and subject_info[1].lower() == "science"
-                        )
-                        or (
-                            subject_info[0].lower() == "electronics"
-                            and subject_info[1].lower() == "science"
-                        )
-                        or (
-                            subject_info[0].lower() == "food"
-                            and subject_info[1].lower() == "technology"
-                        )
-                        or (
-                            subject_info[0].lower() == "home"
-                            and subject_info[1].lower() == "science"
-                        )
-                        or (
-                            subject_info[0].lower() == "environmental"
-                            and subject_info[1].lower() == "science"
-                        )
-                        or (
-                            subject_info[0].lower() == "polymer"
-                            and subject_info[1].lower() == "science"
-                        )
-                    ):
-                        subject = {
-                            "subject": subject_info[0] + " " + subject_info[1],
-                            "semester": subject_info[2],
-                            "paper_code": subject_info[3],
-                            "paper_name": " ".join(subject_info[4:]),
-                        }
-                    else:
-                        subject = {
-                            "subject": subject_info[0],
-                            "semester": subject_info[1],
-                            "paper_code": subject_info[2],
-                            "paper_name": " ".join(subject_info[3:]),
-                        }
-
-                    table[current_date].append(subject)
-
-            # Reset the current date if an empty line is encountered
-            if line.strip() == "":
-                current_date = None
-
-    except IndexError:
-        pass
-
-    return table
+def read_df():
+    print(df.head())
 
 
-fullText = getText(sourceFile)
-CORE_SUBJECTS = get_core_subjects(fullText)
-dates = get_dates(fullText)
-subjects_table = get_subjects(fullText, dates)
+def map_files(dateTimeDf):  # Ab kar rha hai shayad kaam.
+    studentDf = pd.read_excel("Data\ExternalData\studentData.xlsx")
+    studentDf["PAPER CODE"] = studentDf["PAPER CODE"].astype(str)
+    dateTimeDf["UPC"] = dateTimeDf["UPC"].astype(str)
+    print(len(studentDf))
 
-# print(dates)
-for i in dates:
-    print(i)
-    for j in subjects_table[i]:
-        print(j)
+    mergedDf = pd.merge(
+        dateTimeDf, studentDf, left_on="UPC", right_on="PAPER CODE", how="right"
+    )
+
+    mergedDf.to_excel("Output/result.xlsx")
+
+
+dateTimeDf = processss_file(path)
+map_files(dateTimeDf)
