@@ -4,6 +4,8 @@ import pandas as pd
 from flask_cors import CORS
 from flask import Flask, request, jsonify, send_from_directory
 
+import dateSheetProcessing
+
 app = Flask(__name__)
 CORS(app)
 
@@ -73,6 +75,15 @@ def download_result():
             ),
             500,
         )
+
+
+@app.route("/process-datesheet", methods=["POST"])
+def process_datesheet():
+    print(request.files)
+
+    # if os.path.exists("Data/ExternalData"):
+    #     dateSheetProcessing.startProcessing(path="Data/ExternalData")
+    return jsonify(message="Made to the backend")
 
 
 @app.route("/")
