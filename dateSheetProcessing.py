@@ -1,17 +1,13 @@
-import re
 import pandas as pd
 import pdfplumber
 import numpy as np
+import roman
+import re
+import os
 
-path = "C:/Users/coolm/Downloads/datesheet.pdf"
-df = pd.DataFrame(columns=["TIME", "DATE", "UPC"])  # data frame to store time,upc,date
 
-
-def processss_file(path):
+def process_file(datesheetPath):
     months = [
-        "jan",
-        "feb",
-        "mar",
         "apr",
         "may",
         "jun",
@@ -43,12 +39,20 @@ def processss_file(path):
         "saturday",
         "sunday",
     ]
-    pdf = pdfplumber.open(path)
+    semesters = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"]
+
+    df = pd.DataFrame(
+        columns=["TIME", "DATE", "UPC", "TERM"]
+    )  # data frame to store time,upc,date
+
+    pdf = pdfplumber.open(datesheetPath)
     pages = pdf.pages
     print("total pages", len(pages))
+
     for page in pages:
         text = page.extract_text()
         search_line2 = re.compile(r"_______")
+
         counter = False
         for line in text.split("\n"):
             if re.match("TIME OF COMMENCEMENT", line):
@@ -68,27 +72,70 @@ def processss_file(path):
                 line_split = list(line.split())
                 for c in line_split:
                     if re.match(r"\d{7}", c):
-                        row = [d, y, c]
+                        row = [d, y, c, semester]
                         df.loc[len(df)] = row
+                        break
+                    elif any(sem == c for sem in semesters):
+                        semester = str(roman.fromRoman(c)) + " SEMESTER"
     return df
 
 
-def read_df():
-    print(df.head())
+def map_files(dateTimeDf):
+    studentDf = (
+        pd.read_excel("Data/InternalData/Data.xlsx")
+        if not os.path.exists("Data\InternalData\DatesheetResult.xlsx")
+        else pd.read_excel("Data\InternalData\DatesheetResult.xlsx")
+    )
+    if not os.path.exists("Data\InternalData\DatesheetResult.xlsx"):
+        print("Data/InternalData/Data.xlsx")
+    else:
+        print("Data\InternalData\DatesheetResult.xlsx")
 
-
-def map_files(dateTimeDf):  # Ab kar rha hai shayad kaam.
-    studentDf = pd.read_excel("Data\ExternalData\studentData.xlsx")
+    # data frame to store the students data excel file
     studentDf["PAPER CODE"] = studentDf["PAPER CODE"].astype(str)
     dateTimeDf["UPC"] = dateTimeDf["UPC"].astype(str)
     print(len(studentDf))
 
-    mergedDf = pd.merge(
-        dateTimeDf, studentDf, left_on="UPC", right_on="PAPER CODE", how="right"
-    )
+    # First time
+    if not any(column in ["TIME", "DATE"] for column in studentDf.columns):
+        # print("Made to 1st")
+        studentDf["TIME"] = [np.nan for _ in range(len(studentDf))]
+        studentDf["DATE"] = [np.nan for _ in range(len(studentDf))]
+        for studentIdx in range(len(studentDf)):
+            for dateIdx in range(len(dateTimeDf)):
+                if (
+                    studentDf.loc[studentIdx, "PAPER CODE"]
+                    == dateTimeDf.loc[dateIdx, "UPC"]
+                ) and (
+                    studentDf.loc[studentIdx, "TERM"] == dateTimeDf.loc[dateIdx, "TERM"]
+                ):
+                    studentDf.loc[studentIdx, "TIME"] = dateTimeDf.loc[dateIdx, "TIME"]
+                    studentDf.loc[studentIdx, "DATE"] = dateTimeDf.loc[dateIdx, "DATE"]
+            if studentIdx % 100 == 0:
+                print(studentIdx)
+        studentDf.to_excel("Data/InternalData/DatesheetResult.xlsx", index=False)
+        return
+    # Second time onwards
+    else:
+        # print("Made to 2nd")
+        for studentIdx in range(len(studentDf)):
+            for dateIdx in range(len(dateTimeDf)):
+                # if paper code matches with upc code
+                if (
+                    studentDf.loc[studentIdx, "PAPER CODE"]
+                    == dateTimeDf.loc[dateIdx, "UPC"]
+                ) and (
+                    studentDf.loc[studentIdx, "TERM"] == dateTimeDf.loc[dateIdx, "TERM"]
+                ):
+                    studentDf.loc[studentIdx, "TIME"] = dateTimeDf.loc[dateIdx, "TIME"]
+                    studentDf.loc[studentIdx, "DATE"] = dateTimeDf.loc[dateIdx, "DATE"]
 
-    mergedDf.to_excel("Output/result.xlsx")
+            if studentIdx % 100 == 0:
+                print(studentIdx)
+        studentDf.to_excel("Data/InternalData/DatesheetResult.xlsx", index=False)
+        return
 
 
-dateTimeDf = processss_file(path)
-map_files(dateTimeDf)
+def startProcessing(datesheetPath):
+    dateTimeDf = process_file(datesheetPath)
+    map_files(dateTimeDf)
