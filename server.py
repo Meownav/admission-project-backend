@@ -3,7 +3,6 @@ import time
 import pandas as pd
 from flask_cors import CORS
 from flask import Flask, request, jsonify, send_from_directory
-
 import dateSheetProcessing
 
 app = Flask(__name__)
@@ -39,7 +38,11 @@ def process_file():
         return jsonify({"message": "No file selected."}), 400
 
     try:
-        src_path = "./Data/ExternalData/uploaded_file.xlsx"
+        src_path = (
+            "./Data/ExternalData/uploaded_file"
+            + time.strftime("%d-%m-%Y_%H_%M_%S")
+            + ".xlsx"
+        )
         file.save(src_path)
 
         res_path = OUTPUT_DIR + "Result_" + time.strftime("%d-%m-%Y_%H_%M_%S") + ".xlsx"
@@ -79,11 +82,44 @@ def download_result():
 
 @app.route("/process-datesheet", methods=["POST"])
 def process_datesheet():
-    print(request.files)
+    try:
+        datesheet_files = request.files.getlist("datesheet")
+        for file in datesheet_files:
+            file.save("Data/ExternalData/" + file.filename)
 
-    # if os.path.exists("Data/ExternalData"):
-    #     dateSheetProcessing.startProcessing(path="Data/ExternalData")
-    return jsonify(message="Made to the backend")
+        for file in datesheet_files:
+            dateSheetProcessing.startProcessing(
+                datesheetPath="Data/ExternalData/" + file.filename
+            )
+
+        result_path = "Data/InternalData/DatesheetResult.xlsx"
+        return jsonify(
+            message="Datesheet processed successfully", result_path=result_path
+        )
+    except Exception as e:
+        return jsonify(message="An error occured.", error=str(e)), 500
+
+
+@app.route("/download-datesheet", methods=["GET"])
+def download_datesheet():
+    try:
+        res_path = request.args.get("resultPath")
+        filename = res_path.split("/")[-1]
+        print(" filename is : ", filename)
+        return send_from_directory(
+            "Data/InternalData",
+            filename,
+            as_attachment=True,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+    except Exception as e:
+        return (
+            jsonify(
+                message="An error occurred while downloading the result file.",
+                error=str(e),
+            ),
+            500,
+        )
 
 
 @app.route("/")

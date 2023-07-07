@@ -3,12 +3,10 @@ import pdfplumber
 import numpy as np
 import roman
 import re
+import os
 
 
-path = "Data/InternalData/datesheet.pdf"
-
-
-def process_file(path):
+def process_file(datesheetPath):
     months = [
         "apr",
         "may",
@@ -47,15 +45,12 @@ def process_file(path):
         columns=["TIME", "DATE", "UPC", "TERM"]
     )  # data frame to store time,upc,date
 
-    pdf = pdfplumber.open(path)
+    pdf = pdfplumber.open(datesheetPath)
     pages = pdf.pages
     print("total pages", len(pages))
 
     for page in pages:
         text = page.extract_text()
-        # search_line = re.compile(
-        #     r"(^[1-3][0-9]|[1-9])(st|nd|rd|th)(\s)([Jj]anuary|[Ff]ebruary|[Mm]arch|[Aa]pril|[Mm]ay|[Jj]une|[Jj]uly|[Aa]ugust|[Ss]emptember|[Oo]ctober|[nN]ovember|[Dd]ecember|JANUARY|FEBRUARY|MARCH|APRIL|MAY|JUNE|JULY|AUGUST|SEPTEMBER|OCTOBER|NOVEMBER|DECEMBER)(\s{0,1})(,{1})(\s{0,1})([0-9]{4})(\s{1})\("
-        # )
         search_line2 = re.compile(r"_______")
 
         counter = False
@@ -86,17 +81,24 @@ def process_file(path):
 
 
 def map_files(dateTimeDf):
-    print(dateTimeDf)
-    studentDf = pd.read_excel(
-        "Data/InternalData/Students.xlsx"
-    )  # data frame to store the students data excel file
+    studentDf = (
+        pd.read_excel("Data/InternalData/Data.xlsx")
+        if not os.path.exists("Data\InternalData\DatesheetResult.xlsx")
+        else pd.read_excel("Data\InternalData\DatesheetResult.xlsx")
+    )
+    if not os.path.exists("Data\InternalData\DatesheetResult.xlsx"):
+        print("Data/InternalData/Data.xlsx")
+    else:
+        print("Data\InternalData\DatesheetResult.xlsx")
+
+    # data frame to store the students data excel file
     studentDf["PAPER CODE"] = studentDf["PAPER CODE"].astype(str)
     dateTimeDf["UPC"] = dateTimeDf["UPC"].astype(str)
     print(len(studentDf))
 
     # First time
     if not any(column in ["TIME", "DATE"] for column in studentDf.columns):
-        print("Made to 1st")
+        # print("Made to 1st")
         studentDf["TIME"] = [np.nan for _ in range(len(studentDf))]
         studentDf["DATE"] = [np.nan for _ in range(len(studentDf))]
         for studentIdx in range(len(studentDf)):
@@ -111,18 +113,11 @@ def map_files(dateTimeDf):
                     studentDf.loc[studentIdx, "DATE"] = dateTimeDf.loc[dateIdx, "DATE"]
             if studentIdx % 100 == 0:
                 print(studentIdx)
-
-        # mergedDf = pd.merge(
-        #     dateTimeDf, studentDf, left_on="UPC", right_on="PAPER CODE", how="right"
-        # )
-        # mergedDf.drop("UPC", axis=1, inplace=True)
-        # mergedDf.drop("TERM_x", axis=1, inplace=True)
-        # mergedDf.rename(columns={"TERM_y": "TERM"}, inplace=True)
-        studentDf.to_excel("Data/InternalData/final.xlsx", index=False)
+        studentDf.to_excel("Data/InternalData/DatesheetResult.xlsx", index=False)
         return
     # Second time onwards
     else:
-        print("Made to 2nd")
+        # print("Made to 2nd")
         for studentIdx in range(len(studentDf)):
             for dateIdx in range(len(dateTimeDf)):
                 # if paper code matches with upc code
@@ -137,10 +132,10 @@ def map_files(dateTimeDf):
 
             if studentIdx % 100 == 0:
                 print(studentIdx)
-        studentDf.to_excel("Data/InternalData/final.xlsx", index=False)
+        studentDf.to_excel("Data/InternalData/DatesheetResult.xlsx", index=False)
         return
 
 
-def startProcessing(path):
-    dateTimeDf = process_file(path)
+def startProcessing(datesheetPath):
+    dateTimeDf = process_file(datesheetPath)
     map_files(dateTimeDf)
