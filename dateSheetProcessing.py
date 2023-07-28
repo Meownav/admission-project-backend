@@ -6,7 +6,39 @@ import re
 import os
 
 
-def process_file(datesheetPath):
+# TODO: SET DATE
+def process_file_nep(pages):
+    all_tables = []
+
+    df = pd.DataFrame(columns=["TERM", "DATE", "UPC", "TIME"])
+
+    for page in pages:
+        for row_batch in page.extract_tables():
+            for row in row_batch:
+                all_tables.append(row)
+
+    for rowIdx, row in enumerate(all_tables):
+        if not any(
+            "commencement" in str(_).lower() for _ in row
+        ):  # If it is not the header.
+            row[4] = (
+                row[4]
+                if row[4] != None and row[4] != "None"
+                else all_tables[rowIdx - 1][4]
+            )  # Using previous time value if current time in row is null.
+
+            df.loc[len(df)] = [
+                str(roman.fromRoman(str("IV"))) + " SEMESTER",
+                "17 Jan, 2002",
+                row[2],
+                row[4].replace("\n", " "),  # Removing the newline char because why not.
+            ]
+
+    print(df)
+    return df
+
+
+def process_file_cbcs(pages):
     months = [
         "apr",
         "may",
@@ -44,11 +76,7 @@ def process_file(datesheetPath):
     df = pd.DataFrame(
         columns=["TIME", "DATE", "UPC", "TERM"]
     )  # data frame to store time,upc,date
-
-    pdf = pdfplumber.open(datesheetPath)
-    pages = pdf.pages
-    print("total pages", len(pages))
-
+    print("CBCS")
     for page in pages:
         text = page.extract_text()
         search_line2 = re.compile(r"_______")
@@ -80,25 +108,38 @@ def process_file(datesheetPath):
     return df
 
 
+def process_file(datesheetPath):
+    pdf = pdfplumber.open(datesheetPath)
+    pages = pdf.pages
+    text = ""
+
+    for page in pages:
+        text += page.extract_text()
+    # print(text)
+
+    if "CBCS-LOCF" in text.upper():
+        print("CBCS")
+        return process_file_cbcs(pages)
+    elif "NEP-UGCF" in text.upper():
+        return process_file_nep(pages)
+    else:
+        print("Some error occurred while processing.")
+
+
 def map_files(dateTimeDf):
+    print(dateTimeDf)
     studentDf = (
         pd.read_excel("Data/InternalData/Data.xlsx")
         if not os.path.exists("Data\InternalData\DatesheetResult.xlsx")
         else pd.read_excel("Data\InternalData\DatesheetResult.xlsx")
     )
-    if not os.path.exists("Data\InternalData\DatesheetResult.xlsx"):
-        print("Data/InternalData/Data.xlsx")
-    else:
-        print("Data\InternalData\DatesheetResult.xlsx")
 
     # data frame to store the students data excel file
     studentDf["PAPER CODE"] = studentDf["PAPER CODE"].astype(str)
     dateTimeDf["UPC"] = dateTimeDf["UPC"].astype(str)
-    print(len(studentDf))
 
     # First time
     if not any(column in ["TIME", "DATE"] for column in studentDf.columns):
-        # print("Made to 1st")
         studentDf["TIME"] = [np.nan for _ in range(len(studentDf))]
         studentDf["DATE"] = [np.nan for _ in range(len(studentDf))]
         for studentIdx in range(len(studentDf)):
@@ -114,13 +155,11 @@ def map_files(dateTimeDf):
             if studentIdx % 100 == 0:
                 print(studentIdx)
         studentDf.to_excel("Data/InternalData/DatesheetResult.xlsx", index=False)
-        return
     # Second time onwards
     else:
-        # print("Made to 2nd")
         for studentIdx in range(len(studentDf)):
             for dateIdx in range(len(dateTimeDf)):
-                # if paper code matches with upc code
+                # If paper code matches with upc code and term of excel file matches with term of df.
                 if (
                     studentDf.loc[studentIdx, "PAPER CODE"]
                     == dateTimeDf.loc[dateIdx, "UPC"]
@@ -129,13 +168,14 @@ def map_files(dateTimeDf):
                 ):
                     studentDf.loc[studentIdx, "TIME"] = dateTimeDf.loc[dateIdx, "TIME"]
                     studentDf.loc[studentIdx, "DATE"] = dateTimeDf.loc[dateIdx, "DATE"]
-
             if studentIdx % 100 == 0:
                 print(studentIdx)
         studentDf.to_excel("Data/InternalData/DatesheetResult.xlsx", index=False)
-        return
 
 
 def startProcessing(datesheetPath):
     dateTimeDf = process_file(datesheetPath)
     map_files(dateTimeDf)
+
+
+# process_file(r"C:/Users/coolm/Downloads/nw1.pdf")
