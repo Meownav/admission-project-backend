@@ -20,8 +20,8 @@ def process_files(src_path, dest_path, res_path):
         new_data = (
             src_df[~src_df.isin(dest_df)].drop_duplicates().reset_index(drop=True)
         )
-        dest_df = pd.concat([dest_df, new_data]).reset_index(drop=True)
-        dest_df.to_excel(dest_path, index=False)
+        # dest_df = pd.concat([dest_df, new_data]).reset_index(drop=True)
+        src_df.to_excel(dest_path, index=False)
         new_data.reset_index(drop=True).to_excel(res_path, index=False)
         return True
     else:
