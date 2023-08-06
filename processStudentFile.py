@@ -48,27 +48,35 @@ def create_course_master(src_path, dest_dir):
 
 # src_path here should be the path to the course master file.
 def create_subject_master(src_path, dest_dir):
-    src_df = pd.read_excel(src_path)
+    with pd.ExcelWriter(
+        src_path,
+        engine='openpyxl',
+        mode='a',
+        if_sheet_exists='overlay') as writer:
+            src_df = pd.read_excel(src_path)
+            subject_master_df = src_df[
+                [
+                    "Exam Roll Number",
+                    "Address",
+                    "Programme Code",
+                    "Programme Name",
+                    "Current Semester Term",
+                    "Paper Term",
+                    "Paper Code",
+                    "Paper Name",
+                    "Paper Type",
+                ]
+            ].reset_index(drop=True)
 
-    subject_master_df = src_df[
-        [
-            "Exam Roll Number",
-            "Address",
-            "Programme Code",
-            "Programme Name",
-            "Current Semester Term",
-            "Paper Term",
-            "Paper Code",
-            "Paper Name",
-            "Paper Type",
-        ]
-    ].reset_index(drop=True)
+            course_master_df = pd.read_excel(src_path, sheet_name="course_master")
 
-    course_master_df = pd.read_excel(src_path, sheet_name="course_master")
+            print(course_master_df)
 
-    print(course_master_df)
-
-    subject_master_df["Course"] = course_master_df["Programme Code"].replace(mappings)
+            subject_master_df["Course"] = subject_master_df["Programme Code"].replace(mappings)
+            subject_master_df["Exam Roll No."]=subject_master_df["Exam Roll Number"]
+            subject_master_df["CSMT"]=subject_master_df["Course"].astype(str)+"-"+subject_master_df["Paper Term"].astype(str)+"-SMT"
+            subject_master_df["Subject"]=subject_master_df["Paper Code"].astype(str)+"-"+subject_master_df["Paper Type"]+"-"+subject_master_df["Paper Name"].astype(str)
+            subject_master_df.to_excel(writer, sheet_name ="subject_master",index=False)
 
 
     # print(
