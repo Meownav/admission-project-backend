@@ -1,6 +1,8 @@
 import os
 import time
+
 import pandas as pd
+
 
 mappings = {
     22510: "BA(H)EC",
@@ -26,28 +28,22 @@ mappings = {
     22582: "BscPhySc",
 }
 
+# def create_course_master(src_path, dest_dir):
+#     src_df = pd.read_excel(src_path, engine='openpyxl')
 
-def map_dates(dates_path, real_df):
-    dates_df = pd.read_excel(dates_path)
+#     unique_pcode_names = src_df.drop_duplicates(subset=["Programme Code"])
 
-    real_df["Date"] = [None for _ in range(len(real_df))]
-    real_df["Time"] = [None for _ in range(len(real_df))]
+#     unique_pcode_names["Course"] = unique_pcode_names["Programme Code"].map(mappings)
 
-    for i in range(len(real_df)):
-        for j in range(len(dates_df)):
-            if (
-                real_df.iloc[i]["Programme Name"] == dates_df.iloc[j]["Course"]
-                and real_df.iloc[i]["Paper Code"] == dates_df.iloc[j]["Paper Code"]
-                and real_df.iloc[i]["Paper Term"] == dates_df.iloc[j]["CSMT"]
-            ):
-                real_df.loc[i, "Date"] = dates_df.loc[j, "Date"]
-                real_df.loc[i, "Time"] = dates_df.loc[j, "Time"]
+#     course_master_df = unique_pcode_names[["Programme Code", "Programme Name", "Course"]].sort_values(by="Programme Code").reset_index(drop=True)
 
-    return real_df
+#     with pd.ExcelWriter(os.path.join(dest_dir, "new_student_data_course_master.xlsx"), engine='openpyxl') as writer:
+#         src_df.to_excel(writer, sheet_name="student_data", index=False)
+#         course_master_df.to_excel(writer, sheet_name="course_master", index=False)
 
 
 def create_course_master(src_path, dest_dir):
-    print("1st function.")
+    # print("1st function.")
     src_df = pd.read_excel(src_path)
     unique_pcode_names = src_df.drop_duplicates(subset=["Programme Code"])[
         ["Programme Code", "Programme Name"]
@@ -67,11 +63,12 @@ def create_course_master(src_path, dest_dir):
 
 
 # src_path here should be the path to the course master file.
-def create_subject_master(src_path, dest_dir):
+# This will add a new sheet to the same excel file.
+def create_subject_master(src_path):
     with pd.ExcelWriter(
         src_path, engine="openpyxl", mode="a", if_sheet_exists="overlay"
     ) as writer:
-        print("2nd function.")
+        # print("2nd function.")
         src_df = pd.read_excel(src_path)
         subject_master_df = src_df[
             [
@@ -86,8 +83,6 @@ def create_subject_master(src_path, dest_dir):
                 "Paper Type",
             ]
         ].reset_index(drop=True)
-
-        course_master_df = pd.read_excel(src_path, sheet_name="course_master")
 
         subject_master_df["Course"] = subject_master_df["Programme Code"].replace(
             mappings
@@ -106,6 +101,52 @@ def create_subject_master(src_path, dest_dir):
             + "-"
             + subject_master_df["Paper Name"].astype(str)
         )
-        subject_master_df = map_dates("dates.xlsx", subject_master_df)
 
         subject_master_df.to_excel(writer, sheet_name="subject_master", index=False)
+
+
+# src_path here should be the path to the subject_master file.
+# This will add a new sheet to the same file.
+def create_date_master(src_path):
+    with pd.ExcelWriter(
+        src_path, engine="openpyxl", mode="a", if_sheet_exists="overlay"
+    ) as writer:
+        # print("3rd function.")
+        subject_master_df = pd.read_excel(src_path, sheet_name="subject_master")
+        cur_sem_col = subject_master_df["CSMT"]
+        subject_col = subject_master_df["Subject"]
+
+        course_subject = (
+            cur_sem_col.astype(str) + " - " + subject_col.astype(str)
+        ).unique()
+
+        date_master_df = pd.DataFrame(
+            {
+                "Course/Subject": course_subject,  # Get the unique courses
+                "Date": [None for _ in range(len(course_subject))],
+                "Time": [None for _ in range(len(course_subject))],
+            }
+        )
+        date_master_df.to_excel(writer, sheet_name="date_master", index=False)
+
+
+# src_path here should be the path to the file.
+def map_dates(src_path):
+    with pd.ExcelWriter(
+        src_path, engine="openpyxl", mode="a", if_sheet_exists="overlay"
+    ) as writer:
+        date_master_df = pd.read_excel(src_path, sheet_name="date_master")
+        subject_master_df = pd.read_excel(src_path, sheet_name="subject_master")
+
+        date_master_df["key"] = date_master_df["Course/Subject"]
+        subject_master_df["key"] = (
+            subject_master_df["CSMT"] + " - " + subject_master_df["Subject"]
+        )
+
+        merged_df = subject_master_df.merge(
+            date_master_df[["key", "Date", "Time"]], on="key", how="left"
+        )
+
+        merged_df.drop(columns=["key"], inplace=True)
+
+        merged_df.to_excel(writer, sheet_name="subject_master", index=False)
