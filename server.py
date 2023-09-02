@@ -10,7 +10,8 @@ app = Flask(__name__)
 CORS(app)
 
 DEST_PATH = "./Data/InternalData/Data.xlsx"
-OUTPUT_DIR = "./Output/"
+# OUTPUT_DIR = "./Output/"
+OUTPUT_DIR = "./Data/ExternalData/dummy_uts.xlsx"
 
 
 @app.route("/process_student_data", methods=["POST"])
@@ -26,13 +27,15 @@ def process_student_data(src_path, dest_path):
 
         input("Press enter to create subject master.")
         processStudentFile.create_subject_master(
-            os.path.join(OUTPUT_DIR, "new_student_data_course_master.xlsx"),
+            # os.path.join(OUTPUT_DIR, "new_student_data_course_master.xlsx"),
+            src_path,
         )
         print("Subject master has been created.")
 
         input("Press enter to create data master.")
         processStudentFile.create_date_master(
-            os.path.join(OUTPUT_DIR, "new_student_data_course_master.xlsx"),
+            # os.path.join(OUTPUT_DIR, "new_student_data_course_master.xlsx"),
+            src_path,
         )
         print("Subject master has been created. Please write the dates in the file.")
     else:
@@ -45,8 +48,10 @@ def process_student_data(src_path, dest_path):
             pass
         else:
             processStudentFile.map_dates(
-                os.path.join(OUTPUT_DIR, "new_student_data_course_master.xlsx")
+                # os.path.join(OUTPUT_DIR, "new_student_data_course_master.xlsx")
+                src_path
             )
+            print("OO")
 
 
 process_student_data(r"Data/ExternalData/dummy_uts.xlsx", OUTPUT_DIR)

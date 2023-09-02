@@ -56,7 +56,8 @@ def create_course_master(src_path, dest_dir):
     course_master_df["Course"] = course_master_df["Programme Code"].replace(mappings)
 
     with pd.ExcelWriter(
-        os.path.join(dest_dir, "new_student_data_course_master.xlsx")
+        # os.path.join(dest_dir, "new_student_data_course_master.xlsx")
+        path=dest_dir
     ) as writer:
         src_df.to_excel(writer, sheet_name="student_data", index=False)
         course_master_df.to_excel(writer, sheet_name="course_master", index=False)
@@ -150,3 +151,4 @@ def map_dates(src_path):
         merged_df.drop(columns=["key"], inplace=True)
 
         merged_df.to_excel(writer, sheet_name="subject_master", index=False)
+    
