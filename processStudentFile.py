@@ -3,7 +3,6 @@ import time
 
 import pandas as pd
 
-
 mappings = {
     22510: "BA(H)EC",
     22511: "BA(H)EN",
