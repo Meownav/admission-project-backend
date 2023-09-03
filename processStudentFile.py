@@ -27,22 +27,9 @@ mappings = {
     22582: "BscPhySc",
 }
 
-# def create_course_master(src_path, dest_dir):
-#     src_df = pd.read_excel(src_path, engine='openpyxl')
-
-#     unique_pcode_names = src_df.drop_duplicates(subset=["Programme Code"])
-
-#     unique_pcode_names["Course"] = unique_pcode_names["Programme Code"].map(mappings)
-
-#     course_master_df = unique_pcode_names[["Programme Code", "Programme Name", "Course"]].sort_values(by="Programme Code").reset_index(drop=True)
-
-#     with pd.ExcelWriter(os.path.join(dest_dir, "new_student_data_course_master.xlsx"), engine='openpyxl') as writer:
-#         src_df.to_excel(writer, sheet_name="student_data", index=False)
-#         course_master_df.to_excel(writer, sheet_name="course_master", index=False)
-
 
 def create_course_master(src_path, dest_dir):
-    # print("1st function.")
+    print("Creating course master... ")
     src_df = pd.read_excel(src_path)
     unique_pcode_names = src_df.drop_duplicates(subset=["Programme Code"])[
         ["Programme Code", "Programme Name"]
@@ -65,10 +52,11 @@ def create_course_master(src_path, dest_dir):
 # src_path here should be the path to the course master file.
 # This will add a new sheet to the same excel file.
 def create_subject_master(src_path):
+    print("Creating subject master...")
+
     with pd.ExcelWriter(
         src_path, engine="openpyxl", mode="a", if_sheet_exists="overlay"
     ) as writer:
-        # print("2nd function.")
         src_df = pd.read_excel(src_path)
         subject_master_df = src_df[
             [
@@ -108,6 +96,8 @@ def create_subject_master(src_path):
 # src_path here should be the path to the subject_master file.
 # This will add a new sheet to the same file.
 def create_date_master(src_path):
+    print("Creating date master...")
+
     with pd.ExcelWriter(
         src_path, engine="openpyxl", mode="a", if_sheet_exists="overlay"
     ) as writer:
@@ -132,6 +122,8 @@ def create_date_master(src_path):
 
 # src_path here should be the path to the file.
 def map_dates(src_path):
+    print("Mapping dates...")
+
     with pd.ExcelWriter(
         src_path, engine="openpyxl", mode="a", if_sheet_exists="overlay"
     ) as writer:
@@ -150,4 +142,3 @@ def map_dates(src_path):
         merged_df.drop(columns=["key"], inplace=True)
 
         merged_df.to_excel(writer, sheet_name="subject_master", index=False)
-    

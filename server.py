@@ -9,40 +9,98 @@ import processStudentFile
 app = Flask(__name__)
 CORS(app)
 
-# DEST_PATH = "./Data/InternalData/Data.xlsx"
-# OUTPUT_DIR = "./Output/"
-# OUTPUT_DIR = "./Data/ExternalData/dummy_uts.xlsx"
+SRC_DIR = "./Data/ExternalData/"
+SRC_PATH = "./Data/ExternalData/dbFile.xlsx"
+DEST_PATH = "./Data/ExternalData/dbFile.xlsx"
 
 
-# src_path = "./Data/ExternalData/dummy_uts.xlsx"
-# dest_path = "./Data/ExternalData/dummy_uts.xlsx"
-# @app.route("/process_student_data", methods=["POST"])
-# def process_student_data(src_path, dest_path):
-@app.route("/Course_master", methods=["POST"])
-def course_master(src_path, dest_path):
-    processStudentFile.create_course_master(src_path,dest_path)
-    print("course_master success")
+# Saves the submitted db_file.
+@app.route("/submit_file", methods=["POST", "GET"])
+def save_submitted_file():
+    file = request.files["dbFile"]
+    try:
+        file.save("./Data/ExternalData/dbFile.xlsx")
+        return jsonify(message="File processed successfully")
 
-@app.route("/subject_master", methods=["POST"])
-def subjet_master():#(src_path):
-    processStudentFile.create_subject_master(src_path,)
-    print("subject_master success")
+    except Exception as e:
+        return jsonify(message="An error occurred.", error=str(e)), 500
 
 
-@app.route("/date_master", methods=["POST"])
-def date_master():#(src_path,):
-    processStudentFile.create_date_master(src_path,)
-    print("date_master success")
+# Creates the course master sheet.
+@app.route("/course_master", methods=["POST", "GET"])
+# def course_master(src_path, dest_path):
+def course_master():
+    try:
+        processStudentFile.create_course_master(SRC_PATH, DEST_PATH)
+        print("course_master success")
+        return jsonify(message="Course master created successfully")
+    except Exception as e:
+        return jsonify(message="An error occurred.", error=str(e)), 500
 
 
-@app.route("/final_dates", methods=["POST"])
-def final_dates(src_path,):
-    processStudentFile.map_dates(src_path,)
-    print("mapping dates success")
+# Creates the subject master sheet.
+@app.route("/subject_master", methods=["POST", "GET"])
+def subjet_master():
+    try:
+        processStudentFile.create_subject_master(
+            SRC_PATH,
+        )
+        print("subject_master success")
+        return jsonify(message="Subject master created successfully.")
+    except Exception as e:
+        return jsonify(message="An error occurred.", error=str(e)), 500
+
+
+# Creates the subject date sheet.
+@app.route("/date_master", methods=["POST", "GET"])
+def date_master():
+    try:
+        processStudentFile.create_date_master(
+            SRC_PATH,
+        )
+        print("date_master success")
+        return send_from_directory(
+            SRC_DIR,
+            SRC_PATH.split("/")[-1],
+            as_attachment=True,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+    except Exception as e:
+        return jsonify(message="An error occurred.", error=str(e)), 500
+
+
+# Saves the date_file.
+@app.route("/submit_date_file", methods=["POST", "GET"])
+def submit_date_file():
+    file = request.files["dateFile"]
+    try:
+        file.save("./Data/ExternalData/dbFile.xlsx")
+        return jsonify(message="File processed successfully")
+
+    except Exception as e:
+        return jsonify(message="An error occurred.", error=str(e)), 500
+
+
+# Maps the dates.
+@app.route("/final_dates", methods=["POST", "GET"])
+def final_dates():
+    try:
+        processStudentFile.map_dates(
+            SRC_PATH,
+        )
+        print("mapping dates success")
+        return send_from_directory(
+            SRC_DIR,
+            SRC_PATH.split("/")[-1],
+            as_attachment=True,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+    except Exception as e:
+        print(str(e))
+        return jsonify(message="An error occurred.", error=str(e)), 500
 
 
 # process_student_data(r"Data/ExternalData/dummy_uts.xlsx", OUTPUT_DIR)
-
 
 
 # @app.route("/process_student_data", methods=["POST"])
@@ -88,9 +146,9 @@ def final_dates(src_path,):
 # process_student_data(r"Data/ExternalData/dummy_uts.xlsx", OUTPUT_DIR)
 
 
-# @app.route("/")
-# def home():
-#     return "<h1>Backend for the admission project.</h1>"
+@app.route("/")
+def home():
+    return "<h1>Backend for the admission project.</h1>"
 
 
 if __name__ == "__main__":
