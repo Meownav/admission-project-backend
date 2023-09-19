@@ -100,50 +100,18 @@ def final_dates():
         return jsonify(message="An error occurred.", error=str(e)), 500
 
 
-# process_student_data(r"Data/ExternalData/dummy_uts.xlsx", OUTPUT_DIR)
-
-
-# @app.route("/process_student_data", methods=["POST"])
-# def process_student_data(src_path, dest_path):
-#     if (
-#         input(
-#             "Press D to process the dates. OR Press Enter to create the course master"
-#         ).lower()
-#         != "d"
-#     ):
-#         processStudentFile.create_course_master(src_path, dest_path)
-#         print("Course master has been created.")
-
-#         input("Press enter to create subject master.")
-#         processStudentFile.create_subject_master(
-#             # os.path.join(OUTPUT_DIR, "new_student_data_course_master.xlsx"),
-#             src_path,
-#         )
-#         print("Subject master has been created.")
-
-#         input("Press enter to create data master.")
-#         processStudentFile.create_date_master(
-#             # os.path.join(OUTPUT_DIR, "new_student_data_course_master.xlsx"),
-#             src_path,
-#         )
-#         print("Subject master has been created. Please write the dates in the file.")
-#     else:
-#         if (
-#             input(
-#                 "Press Q to go back and write the dates in the subject master OR press enter to map dates."
-#             ).lower()
-#             == "q"
-#         ):
-#             pass
-#         else:
-#             processStudentFile.map_dates(
-#                 # os.path.join(OUTPUT_DIR, "new_student_data_course_master.xlsx")
-#                 src_path
-#             )
-#             print("OO")
-
-
-# process_student_data(r"Data/ExternalData/dummy_uts.xlsx", OUTPUT_DIR)
+@app.route("/get_report", methods=["GET", "POST"])
+def get_report():
+    try:
+        df = pd.read_excel("./Data/ExternalData/dummy_uts.xlsx")
+        x = df.groupby(["Programme Name", "Paper Type"])
+        out = x["Paper Type"].value_counts()
+        print(out)
+        series_json = out.reset_index().to_json(orient="records")
+        return jsonify(message="Success", data=series_json)
+    except Exception as e:
+        print(str(e))
+        return jsonify(message="An error occurred.", error=str(e)), 500
 
 
 @app.route("/")
@@ -153,4 +121,4 @@ def home():
 
 if __name__ == "__main__":
     print("Server Started.")
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", debug=True, port=5000)
