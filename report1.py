@@ -8,4 +8,4 @@ ind = list(set(df['Programme Name']))
 data = pd.DataFrame(data = out,columns=cols,index=ind)
 for idx, row in out.iterrows():
     data.loc[idx] = row['count'] if row['count'] else "NAN"
-data.to_excel("report_output2.xlsx")
+data.to_excel("report1.xlsx")
