@@ -104,10 +104,50 @@ def final_dates():
 def get_report():
     try:
         df = pd.read_excel("./Data/ExternalData/dummy_uts.xlsx")
-        x = df.groupby(["Programme Name", "Paper Type"])
-        out = x["Paper Type"].value_counts()
-        print(out)
-        series_json = out.reset_index().to_json(orient="records")
+        x = df.groupby(['Programme Name','Paper Type'])
+        out = x['Paper Type'].value_counts()
+        out = pd.DataFrame(out)
+        cols = list(set(df['Paper Type']))
+        ind = list(set(df['Programme Name']))
+        data = pd.DataFrame(data = out,columns=cols,index=ind)
+        for idx, row in out.iterrows():
+            data.loc[idx] = row['count'] if row['count'] else "NAN"
+
+        for i in ind:
+            data.loc[i,'Total'] = data.loc[i,:].sum()
+        for i in cols:
+            data.loc['Total',[i]] = data.loc[:,[i]].sum()
+
+        data.loc['Total','Total'] = data.loc[:,'Total'].sum()
+        series_json = data.reset_index().to_json(orient="records")
+        print(type(series_json))
+        return jsonify(message="Success", data=series_json)
+    except Exception as e:
+        print(str(e))
+        return jsonify(message="An error occurred.", error=str(e)), 500
+    
+@app.route("/get_reporttwo", methods=["GET", "POST"])
+def get_reporttwo():
+    try:
+        df = pd.read_excel("./Data/ExternalData/dummy_uts.xlsx")
+        df['Gender'].replace('M','Male',inplace=True)
+        df['Gender'].replace('F','Female',inplace=True)
+        x = df.groupby(['Programme Name','Gender'])
+        out = x['Gender'].value_counts()
+        out = pd.DataFrame(out)
+        cols = list(set(df['Gender']))
+        ind = list(set(df['Programme Name']))
+        data = pd.DataFrame(data = out,columns = cols,index = ind)
+        for idx, row in out.iterrows():
+            data.loc[idx] = row['count'] if row['count'] else "NAN"
+
+        for i in ind:
+            data.loc[i,'Total'] = data.loc[i,:].sum()
+        for i in cols:
+            data.loc['Total',i] = data.loc[:,i].sum()
+        data.loc['Total','Total'] = data.loc[:,'Total'].sum()
+        series_json = data.reset_index().to_json(orient="records")
+        print(type(series_json))
         return jsonify(message="Success", data=series_json)
     except Exception as e:
         print(str(e))
