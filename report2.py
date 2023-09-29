@@ -11,7 +11,7 @@ data = pd.DataFrame(data = out,columns = cols,index = ind)
 for idx, row in out.iterrows():
     data.loc[idx] = row['count'] if row['count'] else "NAN"
 
-for i in cols:
-    data.loc['Total',[i]] = data.loc[:,[i]].sum()
+for i in ind:
+    data.loc[i,'Total'] = data.loc[i,:].sum()
 print(data)
 data.to_excel("report2.xlsx")
