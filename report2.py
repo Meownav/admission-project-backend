@@ -13,5 +13,9 @@ for idx, row in out.iterrows():
 
 for i in ind:
     data.loc[i,'Total'] = data.loc[i,:].sum()
+for i in cols:
+    data.loc['Total',i] = data.loc[:,i].sum()
+data.loc['Total','Total'] = data.loc[:,'Total'].sum()
+
 print(data)
 data.to_excel("report2.xlsx")
