@@ -153,6 +153,26 @@ def get_reporttwo():
         print(str(e))
         return jsonify(message="An error occurred.", error=str(e)), 500
 
+@app.route("/get_options", methods=["GET", "POST"])
+def get_options():
+    try:
+        df=pd.read_excel(SRC_PATH,sheet_name="course_master")
+        options=df['Programme Name'].to_json()
+        return jsonify(message="Success",data=options)
+    except Exception as e:
+        print(str(e))
+        return jsonify(message="An error occurred.", error=str(e)), 500
+
+@app.route("/submit_selected_options",methods=["GET","POST"])
+def selected_options():
+    try:
+        courses=list(request.form.get('array').split(","))
+        df=pd.read_excel(SRC_PATH,sheet_name="student_data")
+        a=df[df["Programme Name"].isin(courses)].to_json(orient="table")
+        return jsonify(message="Success",data=a)
+    except Exception as e:
+        print(str(e))
+        return jsonify(message="An error occurred.", error=str(e)), 500
 
 @app.route("/")
 def home():
