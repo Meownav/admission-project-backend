@@ -169,7 +169,7 @@ def selected_options():
         courses=list(request.form.get('array').split(","))
         df=pd.read_excel(SRC_PATH,sheet_name="student_data")
         a=df[df["Programme Name"].isin(courses)]
-        a=a[["Name","Exam Roll Number","Email"]].drop_duplicates()
+        a=a[["Name","Exam Roll Number","Programme Name","Email"]].drop_duplicates()
         a=a.to_json(orient="records")
         return jsonify(message="Success",data=a)
     except Exception as e:
